@@ -1,6 +1,6 @@
 ## Basic Peripheral SoC
 
-Github:   [http://github.com/ultraembedded/core_soc](https://github.com/ultraembedded/cores/tree/master/core_soc)
+Github:   [http://github.com/ultraembedded/core_soc](http://github.com/ultraembedded/core_soc)
 
 A basic SoC with Timer, UART, SPI, GPIO and Interrupt Controller peripherals.
 
