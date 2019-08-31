@@ -347,7 +347,7 @@ u_uart
     ,.cfg_rdata_o(periph2_rdata_w)
     ,.cfg_rresp_o(periph2_rresp_w)
     ,.tx_o(uart_tx_o)
-    ,.intr_o(interrupt0_w)
+    ,.intr_o(interrupt1_w)
 );
 
 
@@ -376,7 +376,7 @@ u_timer
     ,.cfg_rvalid_o(periph1_rvalid_w)
     ,.cfg_rdata_o(periph1_rdata_w)
     ,.cfg_rresp_o(periph1_rresp_w)
-    ,.intr_o(interrupt3_w)
+    ,.intr_o(interrupt0_w)
 );
 
 
@@ -412,7 +412,7 @@ u_spi
     ,.spi_clk_o(spi_clk_o)
     ,.spi_mosi_o(spi_mosi_o)
     ,.spi_cs_o(spi_cs_o)
-    ,.intr_o(interrupt1_w)
+    ,.intr_o(interrupt2_w)
 );
 
 
@@ -444,7 +444,7 @@ u_gpio
     ,.cfg_rresp_o(periph4_rresp_w)
     ,.gpio_output_o(gpio_output_o)
     ,.gpio_output_enable_o(gpio_output_enable_o)
-    ,.intr_o(interrupt2_w)
+    ,.intr_o(interrupt3_w)
 );
 
 
