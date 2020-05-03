@@ -1,8 +1,8 @@
 //-----------------------------------------------------------------
 //                     Basic Peripheral SoC
-//                           V1.0
+//                           V1.1
 //                     Ultra-Embedded.com
-//                     Copyright 2014-2019
+//                     Copyright 2014-2020
 //
 //                 Email: admin@ultra-embedded.com
 //
@@ -78,6 +78,47 @@ module spi_lite
 );
 
 //-----------------------------------------------------------------
+// Write address / data split
+//-----------------------------------------------------------------
+// Address but no data ready
+reg awvalid_q;
+
+// Data but no data ready
+reg wvalid_q;
+
+wire wr_cmd_accepted_w  = (cfg_awvalid_i && cfg_awready_o) || awvalid_q;
+wire wr_data_accepted_w = (cfg_wvalid_i  && cfg_wready_o)  || wvalid_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    awvalid_q <= 1'b0;
+else if (cfg_awvalid_i && cfg_awready_o && !wr_data_accepted_w)
+    awvalid_q <= 1'b1;
+else if (wr_data_accepted_w)
+    awvalid_q <= 1'b0;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    wvalid_q <= 1'b0;
+else if (cfg_wvalid_i && cfg_wready_o && !wr_cmd_accepted_w)
+    wvalid_q <= 1'b1;
+else if (wr_cmd_accepted_w)
+    wvalid_q <= 1'b0;
+
+//-----------------------------------------------------------------
+// Capture address (for delayed data)
+//-----------------------------------------------------------------
+reg [7:0] wr_addr_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    wr_addr_q <= 8'b0;
+else if (cfg_awvalid_i && cfg_awready_o)
+    wr_addr_q <= cfg_awaddr_i[7:0];
+
+wire [7:0] wr_addr_w = awvalid_q ? wr_addr_q : cfg_awaddr_i[7:0];
+
+//-----------------------------------------------------------------
 // Retime write data
 //-----------------------------------------------------------------
 reg [31:0] wr_data_q;
@@ -85,21 +126,21 @@ reg [31:0] wr_data_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     wr_data_q <= 32'b0;
-else
+else if (cfg_wvalid_i && cfg_wready_o)
     wr_data_q <= cfg_wdata_i;
 
 //-----------------------------------------------------------------
 // Request Logic
 //-----------------------------------------------------------------
 wire read_en_w  = cfg_arvalid_i & cfg_arready_o;
-wire write_en_w = cfg_awvalid_i & cfg_awready_o;
+wire write_en_w = wr_cmd_accepted_w && wr_data_accepted_w;
 
 //-----------------------------------------------------------------
 // Accept Logic
 //-----------------------------------------------------------------
 assign cfg_arready_o = ~cfg_rvalid_o;
-assign cfg_awready_o = ~cfg_bvalid_o && ~cfg_arvalid_i; 
-assign cfg_wready_o  = cfg_awready_o;
+assign cfg_awready_o = ~cfg_bvalid_o && ~cfg_arvalid_i && ~awvalid_q;
+assign cfg_wready_o  = ~cfg_bvalid_o && ~cfg_arvalid_i && ~wvalid_q;
 
 
 //-----------------------------------------------------------------
@@ -110,7 +151,7 @@ reg spi_dgier_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_dgier_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_DGIER))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_DGIER))
     spi_dgier_wr_q <= 1'b1;
 else
     spi_dgier_wr_q <= 1'b0;
@@ -121,7 +162,7 @@ reg        spi_dgier_gie_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_dgier_gie_q <= 1'd`SPI_DGIER_GIE_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_DGIER))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_DGIER))
     spi_dgier_gie_q <= cfg_wdata_i[`SPI_DGIER_GIE_R];
 
 wire        spi_dgier_gie_out_w = spi_dgier_gie_q;
@@ -135,7 +176,7 @@ reg spi_ipisr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_ipisr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_IPISR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_IPISR))
     spi_ipisr_wr_q <= 1'b1;
 else
     spi_ipisr_wr_q <= 1'b0;
@@ -152,7 +193,7 @@ reg spi_ipier_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_ipier_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_IPIER))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_IPIER))
     spi_ipier_wr_q <= 1'b1;
 else
     spi_ipier_wr_q <= 1'b0;
@@ -163,7 +204,7 @@ reg        spi_ipier_tx_empty_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_ipier_tx_empty_q <= 1'd`SPI_IPIER_TX_EMPTY_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_IPIER))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_IPIER))
     spi_ipier_tx_empty_q <= cfg_wdata_i[`SPI_IPIER_TX_EMPTY_R];
 
 wire        spi_ipier_tx_empty_out_w = spi_ipier_tx_empty_q;
@@ -177,7 +218,7 @@ reg spi_srr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_srr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_SRR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_SRR))
     spi_srr_wr_q <= 1'b1;
 else
     spi_srr_wr_q <= 1'b0;
@@ -188,7 +229,7 @@ reg [31:0]  spi_srr_reset_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_srr_reset_q <= 32'd`SPI_SRR_RESET_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_SRR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_SRR))
     spi_srr_reset_q <= cfg_wdata_i[`SPI_SRR_RESET_R];
 else
     spi_srr_reset_q <= 32'd`SPI_SRR_RESET_DEFAULT;
@@ -204,7 +245,7 @@ reg spi_cr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_wr_q <= 1'b1;
 else
     spi_cr_wr_q <= 1'b0;
@@ -215,7 +256,7 @@ reg        spi_cr_loop_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_loop_q <= 1'd`SPI_CR_LOOP_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_loop_q <= cfg_wdata_i[`SPI_CR_LOOP_R];
 
 wire        spi_cr_loop_out_w = spi_cr_loop_q;
@@ -227,7 +268,7 @@ reg        spi_cr_spe_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_spe_q <= 1'd`SPI_CR_SPE_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_spe_q <= cfg_wdata_i[`SPI_CR_SPE_R];
 
 wire        spi_cr_spe_out_w = spi_cr_spe_q;
@@ -239,7 +280,7 @@ reg        spi_cr_master_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_master_q <= 1'd`SPI_CR_MASTER_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_master_q <= cfg_wdata_i[`SPI_CR_MASTER_R];
 
 wire        spi_cr_master_out_w = spi_cr_master_q;
@@ -251,7 +292,7 @@ reg        spi_cr_cpol_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_cpol_q <= 1'd`SPI_CR_CPOL_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_cpol_q <= cfg_wdata_i[`SPI_CR_CPOL_R];
 
 wire        spi_cr_cpol_out_w = spi_cr_cpol_q;
@@ -263,7 +304,7 @@ reg        spi_cr_cpha_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_cpha_q <= 1'd`SPI_CR_CPHA_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_cpha_q <= cfg_wdata_i[`SPI_CR_CPHA_R];
 
 wire        spi_cr_cpha_out_w = spi_cr_cpha_q;
@@ -275,7 +316,7 @@ reg        spi_cr_txfifo_rst_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_txfifo_rst_q <= 1'd`SPI_CR_TXFIFO_RST_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_txfifo_rst_q <= cfg_wdata_i[`SPI_CR_TXFIFO_RST_R];
 else
     spi_cr_txfifo_rst_q <= 1'd`SPI_CR_TXFIFO_RST_DEFAULT;
@@ -289,7 +330,7 @@ reg        spi_cr_rxfifo_rst_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_rxfifo_rst_q <= 1'd`SPI_CR_RXFIFO_RST_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_rxfifo_rst_q <= cfg_wdata_i[`SPI_CR_RXFIFO_RST_R];
 else
     spi_cr_rxfifo_rst_q <= 1'd`SPI_CR_RXFIFO_RST_DEFAULT;
@@ -303,7 +344,7 @@ reg        spi_cr_manual_ss_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_manual_ss_q <= 1'd`SPI_CR_MANUAL_SS_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_manual_ss_q <= cfg_wdata_i[`SPI_CR_MANUAL_SS_R];
 
 wire        spi_cr_manual_ss_out_w = spi_cr_manual_ss_q;
@@ -315,7 +356,7 @@ reg        spi_cr_trans_inhibit_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_trans_inhibit_q <= 1'd`SPI_CR_TRANS_INHIBIT_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_trans_inhibit_q <= cfg_wdata_i[`SPI_CR_TRANS_INHIBIT_R];
 
 wire        spi_cr_trans_inhibit_out_w = spi_cr_trans_inhibit_q;
@@ -327,7 +368,7 @@ reg        spi_cr_lsb_first_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_cr_lsb_first_q <= 1'd`SPI_CR_LSB_FIRST_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_CR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_CR))
     spi_cr_lsb_first_q <= cfg_wdata_i[`SPI_CR_LSB_FIRST_R];
 
 wire        spi_cr_lsb_first_out_w = spi_cr_lsb_first_q;
@@ -341,7 +382,7 @@ reg spi_sr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_sr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_SR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_SR))
     spi_sr_wr_q <= 1'b1;
 else
     spi_sr_wr_q <= 1'b0;
@@ -358,7 +399,7 @@ reg spi_dtr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_dtr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_DTR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_DTR))
     spi_dtr_wr_q <= 1'b1;
 else
     spi_dtr_wr_q <= 1'b0;
@@ -375,7 +416,7 @@ reg spi_drr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_drr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_DRR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_DRR))
     spi_drr_wr_q <= 1'b1;
 else
     spi_drr_wr_q <= 1'b0;
@@ -389,7 +430,7 @@ reg spi_ssr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_ssr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_SSR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_SSR))
     spi_ssr_wr_q <= 1'b1;
 else
     spi_ssr_wr_q <= 1'b0;
@@ -400,7 +441,7 @@ reg [7:0]  spi_ssr_value_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     spi_ssr_value_q <= 8'd`SPI_SSR_VALUE_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `SPI_SSR))
+else if (write_en_w && (wr_addr_w[7:0] == `SPI_SSR))
     spi_ssr_value_q <= cfg_wdata_i[`SPI_SSR_VALUE_R];
 
 wire [7:0]  spi_ssr_value_out_w = spi_ssr_value_q;

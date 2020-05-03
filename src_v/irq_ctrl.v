@@ -1,8 +1,8 @@
 //-----------------------------------------------------------------
 //                     Basic Peripheral SoC
-//                           V1.0
+//                           V1.1
 //                     Ultra-Embedded.com
-//                     Copyright 2014-2019
+//                     Copyright 2014-2020
 //
 //                 Email: admin@ultra-embedded.com
 //
@@ -69,6 +69,47 @@ module irq_ctrl
 );
 
 //-----------------------------------------------------------------
+// Write address / data split
+//-----------------------------------------------------------------
+// Address but no data ready
+reg awvalid_q;
+
+// Data but no data ready
+reg wvalid_q;
+
+wire wr_cmd_accepted_w  = (cfg_awvalid_i && cfg_awready_o) || awvalid_q;
+wire wr_data_accepted_w = (cfg_wvalid_i  && cfg_wready_o)  || wvalid_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    awvalid_q <= 1'b0;
+else if (cfg_awvalid_i && cfg_awready_o && !wr_data_accepted_w)
+    awvalid_q <= 1'b1;
+else if (wr_data_accepted_w)
+    awvalid_q <= 1'b0;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    wvalid_q <= 1'b0;
+else if (cfg_wvalid_i && cfg_wready_o && !wr_cmd_accepted_w)
+    wvalid_q <= 1'b1;
+else if (wr_cmd_accepted_w)
+    wvalid_q <= 1'b0;
+
+//-----------------------------------------------------------------
+// Capture address (for delayed data)
+//-----------------------------------------------------------------
+reg [7:0] wr_addr_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    wr_addr_q <= 8'b0;
+else if (cfg_awvalid_i && cfg_awready_o)
+    wr_addr_q <= cfg_awaddr_i[7:0];
+
+wire [7:0] wr_addr_w = awvalid_q ? wr_addr_q : cfg_awaddr_i[7:0];
+
+//-----------------------------------------------------------------
 // Retime write data
 //-----------------------------------------------------------------
 reg [31:0] wr_data_q;
@@ -76,21 +117,21 @@ reg [31:0] wr_data_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     wr_data_q <= 32'b0;
-else
+else if (cfg_wvalid_i && cfg_wready_o)
     wr_data_q <= cfg_wdata_i;
 
 //-----------------------------------------------------------------
 // Request Logic
 //-----------------------------------------------------------------
 wire read_en_w  = cfg_arvalid_i & cfg_arready_o;
-wire write_en_w = cfg_awvalid_i & cfg_awready_o;
+wire write_en_w = wr_cmd_accepted_w && wr_data_accepted_w;
 
 //-----------------------------------------------------------------
 // Accept Logic
 //-----------------------------------------------------------------
 assign cfg_arready_o = ~cfg_rvalid_o;
-assign cfg_awready_o = ~cfg_bvalid_o && ~cfg_arvalid_i; 
-assign cfg_wready_o  = cfg_awready_o;
+assign cfg_awready_o = ~cfg_bvalid_o && ~cfg_arvalid_i && ~awvalid_q;
+assign cfg_wready_o  = ~cfg_bvalid_o && ~cfg_arvalid_i && ~wvalid_q;
 
 
 //-----------------------------------------------------------------
@@ -101,7 +142,7 @@ reg irq_isr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_isr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_ISR))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_ISR))
     irq_isr_wr_q <= 1'b1;
 else
     irq_isr_wr_q <= 1'b0;
@@ -118,7 +159,7 @@ reg irq_ipr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_ipr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_IPR))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_IPR))
     irq_ipr_wr_q <= 1'b1;
 else
     irq_ipr_wr_q <= 1'b0;
@@ -132,7 +173,7 @@ reg irq_ier_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_ier_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_IER))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_IER))
     irq_ier_wr_q <= 1'b1;
 else
     irq_ier_wr_q <= 1'b0;
@@ -149,7 +190,7 @@ reg irq_iar_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_iar_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_IAR))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_IAR))
     irq_iar_wr_q <= 1'b1;
 else
     irq_iar_wr_q <= 1'b0;
@@ -160,7 +201,7 @@ reg [3:0]  irq_iar_ack_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_iar_ack_q <= 4'd`IRQ_IAR_ACK_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_IAR))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_IAR))
     irq_iar_ack_q <= cfg_wdata_i[`IRQ_IAR_ACK_R];
 else
     irq_iar_ack_q <= 4'd`IRQ_IAR_ACK_DEFAULT;
@@ -176,7 +217,7 @@ reg irq_sie_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_sie_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_SIE))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_SIE))
     irq_sie_wr_q <= 1'b1;
 else
     irq_sie_wr_q <= 1'b0;
@@ -193,7 +234,7 @@ reg irq_cie_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_cie_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_CIE))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_CIE))
     irq_cie_wr_q <= 1'b1;
 else
     irq_cie_wr_q <= 1'b0;
@@ -210,7 +251,7 @@ reg irq_ivr_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_ivr_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_IVR))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_IVR))
     irq_ivr_wr_q <= 1'b1;
 else
     irq_ivr_wr_q <= 1'b0;
@@ -227,7 +268,7 @@ reg irq_mer_wr_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_mer_wr_q <= 1'b0;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_MER))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_MER))
     irq_mer_wr_q <= 1'b1;
 else
     irq_mer_wr_q <= 1'b0;
@@ -238,7 +279,7 @@ reg        irq_mer_me_q;
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
     irq_mer_me_q <= 1'd`IRQ_MER_ME_DEFAULT;
-else if (write_en_w && (cfg_awaddr_i[7:0] == `IRQ_MER))
+else if (write_en_w && (wr_addr_w[7:0] == `IRQ_MER))
     irq_mer_me_q <= cfg_wdata_i[`IRQ_MER_ME_R];
 
 wire        irq_mer_me_out_w = irq_mer_me_q;

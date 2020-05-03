@@ -1,8 +1,8 @@
 //-----------------------------------------------------------------
 //                     Basic Peripheral SoC
-//                           V1.0
+//                           V1.1
 //                     Ultra-Embedded.com
-//                     Copyright 2014-2019
+//                     Copyright 2014-2020
 //
 //                 Email: admin@ultra-embedded.com
 //
@@ -37,9 +37,9 @@ module core_soc
 // Params
 //-----------------------------------------------------------------
 #(
-     parameter C_SCK_RATIO      = 50
-    ,parameter CLK_FREQ         = 50000000
+     parameter CLK_FREQ         = 50000000
     ,parameter BAUDRATE         = 1000000
+    ,parameter C_SCK_RATIO      = 50
 )
 //-----------------------------------------------------------------
 // Ports

@@ -1,8 +1,8 @@
 //-----------------------------------------------------------------
 //                     Basic Peripheral SoC
-//                           V1.0
+//                           V1.1
 //                     Ultra-Embedded.com
-//                     Copyright 2014-2019
+//                     Copyright 2014-2020
 //
 //                 Email: admin@ultra-embedded.com
 //
@@ -287,39 +287,53 @@ assign outport3_rready_o = inport_rready_i && (read_sel_q == 3'd3);
 assign outport4_rready_o = inport_rready_i && (read_sel_q == 3'd4);
 
 //-----------------------------------------------------------------
-// Write Address Latch (for delayed data)
+// Write command tracking
 //-----------------------------------------------------------------
-reg [31:0] awaddr_q;
-reg        awvalid_q;
-reg        awvalid_r;
+reg  awvalid_q;
+reg  wvalid_q;
+wire wr_cmd_accepted_w  = (inport_awvalid_i && inport_awready_o) || awvalid_q;
+wire wr_data_accepted_w = (inport_wvalid_i  && inport_wready_o)  || wvalid_q;
+
+reg awvalid_r;
 
 always @ *
 begin
     awvalid_r   = awvalid_q;
 
     // Address ready, data not ready
-    if (inport_awvalid_i && inport_awready_o && !inport_wvalid_i)
+    if (inport_awvalid_i && inport_awready_o && !wr_data_accepted_w)
         awvalid_r = 1'b1;
-    else if (inport_bvalid_o && inport_bready_i)
+    else if (wr_data_accepted_w)
         awvalid_r = 1'b0;
 end
 
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
-begin
     awvalid_q   <= 1'b0;
-    awaddr_q    <= 32'b0;
-end
 else
-begin
     awvalid_q   <= awvalid_r;
 
-    if (inport_awvalid_i && inport_awready_o)
-        awaddr_q    <= inport_awaddr_i;
+//-----------------------------------------------------------------
+// Write data tracking
+//-----------------------------------------------------------------
+reg wvalid_r;
+
+always @ *
+begin
+    wvalid_r   = wvalid_q;
+
+    // Data ready, address not ready
+    if (inport_wvalid_i && inport_wready_o && !wr_cmd_accepted_w)
+        wvalid_r = 1'b1;
+    else if (wr_cmd_accepted_w)
+        wvalid_r = 1'b0;
 end
 
-wire        inport_awvalid_w = inport_awvalid_i | awvalid_q;
-wire [31:0] inport_awaddr_w  = awvalid_q ? awaddr_q : inport_awaddr_i;
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+    wvalid_q   <= 1'b0;
+else
+    wvalid_q   <= wvalid_r;
 
 //-----------------------------------------------------------------
 // Write Dist
@@ -331,21 +345,19 @@ reg write_pending_r;
 
 always @ *
 begin
-    write_pending_r = write_pending_q;
+    write_pending_r  = write_pending_q;
+    write_sel_r      = write_sel_q;
 
     // Write response
     if (inport_bvalid_o && inport_bready_i)
         write_pending_r = 1'b0;
-    // New request
-    // NOTE: Assumes slaves will accept both address & data in same cycle...
-    else if (!write_pending_r && inport_wvalid_i)
-        write_pending_r = inport_wready_o;
+    // New request - both command and data accepted
+    else if (wr_cmd_accepted_w && wr_data_accepted_w)
+        write_pending_r = 1'b1;
 
-    // Address to port selection
-    if (!write_pending_q)
-        write_sel_r  = inport_awaddr_w[26:24];
-    else
-        write_sel_r  = write_sel_q;
+    // New request - latch address to port selection
+    if (inport_awvalid_i && !awvalid_q && !write_pending_q)
+        write_sel_r     = inport_awaddr_i[26:24];
 end
 
 always @ (posedge clk_i or posedge rst_i)
@@ -363,30 +375,29 @@ end
 //-----------------------------------------------------------------
 // Write Request
 //-----------------------------------------------------------------
-// NOTE: Assumes slaves will accept both address & data in same cycle...
-assign outport0_awvalid_o =  inport_awvalid_w && inport_wvalid_i && (write_sel_r == 3'd0) && !write_pending_q;
-assign outport0_awaddr_o  =  inport_awaddr_w;
-assign outport0_wvalid_o  =  outport0_awvalid_o;
+assign outport0_awvalid_o =  inport_awvalid_i && (write_sel_r == 3'd0) && !awvalid_q && !write_pending_q;
+assign outport0_awaddr_o  =  inport_awaddr_i;
+assign outport0_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd0) && !wvalid_q && !write_pending_q;
 assign outport0_wdata_o   =  inport_wdata_i;
 assign outport0_wstrb_o   =  inport_wstrb_i;
-assign outport1_awvalid_o =  inport_awvalid_w && inport_wvalid_i && (write_sel_r == 3'd1) && !write_pending_q;
-assign outport1_awaddr_o  =  inport_awaddr_w;
-assign outport1_wvalid_o  =  outport1_awvalid_o;
+assign outport1_awvalid_o =  inport_awvalid_i && (write_sel_r == 3'd1) && !awvalid_q && !write_pending_q;
+assign outport1_awaddr_o  =  inport_awaddr_i;
+assign outport1_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd1) && !wvalid_q && !write_pending_q;
 assign outport1_wdata_o   =  inport_wdata_i;
 assign outport1_wstrb_o   =  inport_wstrb_i;
-assign outport2_awvalid_o =  inport_awvalid_w && inport_wvalid_i && (write_sel_r == 3'd2) && !write_pending_q;
-assign outport2_awaddr_o  =  inport_awaddr_w;
-assign outport2_wvalid_o  =  outport2_awvalid_o;
+assign outport2_awvalid_o =  inport_awvalid_i && (write_sel_r == 3'd2) && !awvalid_q && !write_pending_q;
+assign outport2_awaddr_o  =  inport_awaddr_i;
+assign outport2_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd2) && !wvalid_q && !write_pending_q;
 assign outport2_wdata_o   =  inport_wdata_i;
 assign outport2_wstrb_o   =  inport_wstrb_i;
-assign outport3_awvalid_o =  inport_awvalid_w && inport_wvalid_i && (write_sel_r == 3'd3) && !write_pending_q;
-assign outport3_awaddr_o  =  inport_awaddr_w;
-assign outport3_wvalid_o  =  outport3_awvalid_o;
+assign outport3_awvalid_o =  inport_awvalid_i && (write_sel_r == 3'd3) && !awvalid_q && !write_pending_q;
+assign outport3_awaddr_o  =  inport_awaddr_i;
+assign outport3_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd3) && !wvalid_q && !write_pending_q;
 assign outport3_wdata_o   =  inport_wdata_i;
 assign outport3_wstrb_o   =  inport_wstrb_i;
-assign outport4_awvalid_o =  inport_awvalid_w && inport_wvalid_i && (write_sel_r == 3'd4) && !write_pending_q;
-assign outport4_awaddr_o  =  inport_awaddr_w;
-assign outport4_wvalid_o  =  outport4_awvalid_o;
+assign outport4_awvalid_o =  inport_awvalid_i && (write_sel_r == 3'd4) && !awvalid_q && !write_pending_q;
+assign outport4_awaddr_o  =  inport_awaddr_i;
+assign outport4_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd4) && !wvalid_q && !write_pending_q;
 assign outport4_wdata_o   =  inport_wdata_i;
 assign outport4_wstrb_o   =  inport_wstrb_i;
 
@@ -432,8 +443,8 @@ begin
     endcase
 end
 
-assign inport_awready_o = inport_awready_r && !write_pending_q && !awvalid_q;
-assign inport_wready_o  = inport_wready_r  && !write_pending_q && inport_awvalid_w;
+assign inport_awready_o = inport_awready_r && !awvalid_q && !write_pending_q;
+assign inport_wready_o  = inport_wready_r  && !wvalid_q  && !write_pending_q;
 
 //-----------------------------------------------------------------
 // Write Response
