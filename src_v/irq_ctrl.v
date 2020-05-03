@@ -55,6 +55,9 @@ module irq_ctrl
     ,input          interrupt1_i
     ,input          interrupt2_i
     ,input          interrupt3_i
+    ,input          interrupt4_i
+    ,input          interrupt5_i
+    ,input          interrupt6_i
 
     // Outputs
     ,output         cfg_awready_o
@@ -148,7 +151,7 @@ else
     irq_isr_wr_q <= 1'b0;
 
 // irq_isr_status [external]
-wire [3:0]  irq_isr_status_out_w = wr_data_q[`IRQ_ISR_STATUS_R];
+wire [6:0]  irq_isr_status_out_w = wr_data_q[`IRQ_ISR_STATUS_R];
 
 
 //-----------------------------------------------------------------
@@ -179,7 +182,7 @@ else
     irq_ier_wr_q <= 1'b0;
 
 // irq_ier_enable [external]
-wire [3:0]  irq_ier_enable_out_w = wr_data_q[`IRQ_IER_ENABLE_R];
+wire [6:0]  irq_ier_enable_out_w = wr_data_q[`IRQ_IER_ENABLE_R];
 
 
 //-----------------------------------------------------------------
@@ -196,17 +199,17 @@ else
     irq_iar_wr_q <= 1'b0;
 
 // irq_iar_ack [auto_clr]
-reg [3:0]  irq_iar_ack_q;
+reg [6:0]  irq_iar_ack_q;
 
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
-    irq_iar_ack_q <= 4'd`IRQ_IAR_ACK_DEFAULT;
+    irq_iar_ack_q <= 7'd`IRQ_IAR_ACK_DEFAULT;
 else if (write_en_w && (wr_addr_w[7:0] == `IRQ_IAR))
     irq_iar_ack_q <= cfg_wdata_i[`IRQ_IAR_ACK_R];
 else
-    irq_iar_ack_q <= 4'd`IRQ_IAR_ACK_DEFAULT;
+    irq_iar_ack_q <= 7'd`IRQ_IAR_ACK_DEFAULT;
 
-wire [3:0]  irq_iar_ack_out_w = irq_iar_ack_q;
+wire [6:0]  irq_iar_ack_out_w = irq_iar_ack_q;
 
 
 //-----------------------------------------------------------------
@@ -223,7 +226,7 @@ else
     irq_sie_wr_q <= 1'b0;
 
 // irq_sie_set [external]
-wire [3:0]  irq_sie_set_out_w = wr_data_q[`IRQ_SIE_SET_R];
+wire [6:0]  irq_sie_set_out_w = wr_data_q[`IRQ_SIE_SET_R];
 
 
 //-----------------------------------------------------------------
@@ -240,7 +243,7 @@ else
     irq_cie_wr_q <= 1'b0;
 
 // irq_cie_clr [external]
-wire [3:0]  irq_cie_clr_out_w = wr_data_q[`IRQ_CIE_CLR_R];
+wire [6:0]  irq_cie_clr_out_w = wr_data_q[`IRQ_CIE_CLR_R];
 
 
 //-----------------------------------------------------------------
@@ -285,9 +288,9 @@ else if (write_en_w && (wr_addr_w[7:0] == `IRQ_MER))
 wire        irq_mer_me_out_w = irq_mer_me_q;
 
 
-wire [3:0]  irq_isr_status_in_w;
-wire [3:0]  irq_ipr_pending_in_w;
-wire [3:0]  irq_ier_enable_in_w;
+wire [6:0]  irq_isr_status_in_w;
+wire [6:0]  irq_ipr_pending_in_w;
+wire [6:0]  irq_ier_enable_in_w;
 wire [31:0]  irq_ivr_vector_in_w;
 
 
@@ -379,21 +382,24 @@ wire irq_sie_wr_req_w = irq_sie_wr_q;
 wire irq_cie_wr_req_w = irq_cie_wr_q;
 wire irq_ivr_wr_req_w = irq_ivr_wr_q;
 
-wire [3:0] irq_input_w;
+wire [6:0] irq_input_w;
 
 assign irq_input_w[0] = interrupt0_i;
 assign irq_input_w[1] = interrupt1_i;
 assign irq_input_w[2] = interrupt2_i;
 assign irq_input_w[3] = interrupt3_i;
+assign irq_input_w[4] = interrupt4_i;
+assign irq_input_w[5] = interrupt5_i;
+assign irq_input_w[6] = interrupt6_i;
 
 //-----------------------------------------------------------------
 // IRQ Enable
 //-----------------------------------------------------------------
-reg [3:0] irq_enable_q;
+reg [6:0] irq_enable_q;
 
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
-    irq_enable_q <= 4'b0;
+    irq_enable_q <= 7'b0;
 else if (irq_ier_wr_req_w)
     irq_enable_q <= irq_ier_enable_out_w;
 else if (irq_sie_wr_req_w)
@@ -406,13 +412,13 @@ assign irq_ier_enable_in_w = irq_enable_q;
 //-----------------------------------------------------------------
 // IRQ Pending
 //-----------------------------------------------------------------
-reg [3:0] irq_pending_q;
+reg [6:0] irq_pending_q;
 
-wire [3:0] irq_sw_int_w = {4{irq_isr_wr_req_w}} & irq_isr_status_out_w;
+wire [6:0] irq_sw_int_w = {7{irq_isr_wr_req_w}} & irq_isr_status_out_w;
 
 always @ (posedge clk_i or posedge rst_i)
 if (rst_i)
-    irq_pending_q <= 4'b0;
+    irq_pending_q <= 7'b0;
 else
     irq_pending_q <= irq_input_w | irq_sw_int_w | (irq_pending_q & ~irq_iar_ack_out_w);
 
@@ -438,6 +444,15 @@ begin
     else
     if (irq_ipr_pending_in_w[3])
         ivr_vector_r = 32'd3;
+    else
+    if (irq_ipr_pending_in_w[4])
+        ivr_vector_r = 32'd4;
+    else
+    if (irq_ipr_pending_in_w[5])
+        ivr_vector_r = 32'd5;
+    else
+    if (irq_ipr_pending_in_w[6])
+        ivr_vector_r = 32'd6;
     else
         ivr_vector_r = 32'hffffffff;
 end

@@ -86,6 +86,30 @@ module axi4lite_dist
     ,input           outport4_rvalid_i
     ,input  [ 31:0]  outport4_rdata_i
     ,input  [  1:0]  outport4_rresp_i
+    ,input           outport5_awready_i
+    ,input           outport5_wready_i
+    ,input           outport5_bvalid_i
+    ,input  [  1:0]  outport5_bresp_i
+    ,input           outport5_arready_i
+    ,input           outport5_rvalid_i
+    ,input  [ 31:0]  outport5_rdata_i
+    ,input  [  1:0]  outport5_rresp_i
+    ,input           outport6_awready_i
+    ,input           outport6_wready_i
+    ,input           outport6_bvalid_i
+    ,input  [  1:0]  outport6_bresp_i
+    ,input           outport6_arready_i
+    ,input           outport6_rvalid_i
+    ,input  [ 31:0]  outport6_rdata_i
+    ,input  [  1:0]  outport6_rresp_i
+    ,input           outport7_awready_i
+    ,input           outport7_wready_i
+    ,input           outport7_bvalid_i
+    ,input  [  1:0]  outport7_bresp_i
+    ,input           outport7_arready_i
+    ,input           outport7_rvalid_i
+    ,input  [ 31:0]  outport7_rdata_i
+    ,input  [  1:0]  outport7_rresp_i
 
     // Outputs
     ,output          inport_awready_o
@@ -141,6 +165,33 @@ module axi4lite_dist
     ,output          outport4_arvalid_o
     ,output [ 31:0]  outport4_araddr_o
     ,output          outport4_rready_o
+    ,output          outport5_awvalid_o
+    ,output [ 31:0]  outport5_awaddr_o
+    ,output          outport5_wvalid_o
+    ,output [ 31:0]  outport5_wdata_o
+    ,output [  3:0]  outport5_wstrb_o
+    ,output          outport5_bready_o
+    ,output          outport5_arvalid_o
+    ,output [ 31:0]  outport5_araddr_o
+    ,output          outport5_rready_o
+    ,output          outport6_awvalid_o
+    ,output [ 31:0]  outport6_awaddr_o
+    ,output          outport6_wvalid_o
+    ,output [ 31:0]  outport6_wdata_o
+    ,output [  3:0]  outport6_wstrb_o
+    ,output          outport6_bready_o
+    ,output          outport6_arvalid_o
+    ,output [ 31:0]  outport6_araddr_o
+    ,output          outport6_rready_o
+    ,output          outport7_awvalid_o
+    ,output [ 31:0]  outport7_awaddr_o
+    ,output          outport7_wvalid_o
+    ,output [ 31:0]  outport7_wdata_o
+    ,output [  3:0]  outport7_wstrb_o
+    ,output          outport7_bready_o
+    ,output          outport7_arvalid_o
+    ,output [ 31:0]  outport7_araddr_o
+    ,output          outport7_rready_o
 );
 
 
@@ -196,6 +247,12 @@ assign outport3_arvalid_o =  inport_arvalid_i && (read_sel_r == 3'd3) && !read_p
 assign outport3_araddr_o  =  inport_araddr_i;
 assign outport4_arvalid_o =  inport_arvalid_i && (read_sel_r == 3'd4) && !read_pending_q;
 assign outport4_araddr_o  =  inport_araddr_i;
+assign outport5_arvalid_o =  inport_arvalid_i && (read_sel_r == 3'd5) && !read_pending_q;
+assign outport5_araddr_o  =  inport_araddr_i;
+assign outport6_arvalid_o =  inport_arvalid_i && (read_sel_r == 3'd6) && !read_pending_q;
+assign outport6_araddr_o  =  inport_araddr_i;
+assign outport7_arvalid_o =  inport_arvalid_i && (read_sel_r == 3'd7) && !read_pending_q;
+assign outport7_araddr_o  =  inport_araddr_i;
 
 //-----------------------------------------------------------------
 // Read Request Accept
@@ -217,6 +274,12 @@ begin
         inport_arready_r = outport3_arready_i;
     3'd4:
         inport_arready_r = outport4_arready_i;
+    3'd5:
+        inport_arready_r = outport5_arready_i;
+    3'd6:
+        inport_arready_r = outport6_arready_i;
+    3'd7:
+        inport_arready_r = outport7_arready_i;
     default :
         ;
     endcase
@@ -268,6 +331,24 @@ begin
         inport_rdata_r  = outport4_rdata_i;
         inport_rresp_r  = outport4_rresp_i;
     end
+    3'd5:
+    begin
+        inport_rvalid_r = outport5_rvalid_i;
+        inport_rdata_r  = outport5_rdata_i;
+        inport_rresp_r  = outport5_rresp_i;
+    end
+    3'd6:
+    begin
+        inport_rvalid_r = outport6_rvalid_i;
+        inport_rdata_r  = outport6_rdata_i;
+        inport_rresp_r  = outport6_rresp_i;
+    end
+    3'd7:
+    begin
+        inport_rvalid_r = outport7_rvalid_i;
+        inport_rdata_r  = outport7_rdata_i;
+        inport_rresp_r  = outport7_rresp_i;
+    end
     default :
         ;
     endcase
@@ -285,6 +366,9 @@ assign outport1_rready_o = inport_rready_i && (read_sel_q == 3'd1);
 assign outport2_rready_o = inport_rready_i && (read_sel_q == 3'd2);
 assign outport3_rready_o = inport_rready_i && (read_sel_q == 3'd3);
 assign outport4_rready_o = inport_rready_i && (read_sel_q == 3'd4);
+assign outport5_rready_o = inport_rready_i && (read_sel_q == 3'd5);
+assign outport6_rready_o = inport_rready_i && (read_sel_q == 3'd6);
+assign outport7_rready_o = inport_rready_i && (read_sel_q == 3'd7);
 
 //-----------------------------------------------------------------
 // Write command tracking
@@ -400,6 +484,21 @@ assign outport4_awaddr_o  =  inport_awaddr_i;
 assign outport4_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd4) && !wvalid_q && !write_pending_q;
 assign outport4_wdata_o   =  inport_wdata_i;
 assign outport4_wstrb_o   =  inport_wstrb_i;
+assign outport5_awvalid_o =  inport_awvalid_i && (write_sel_r == 3'd5) && !awvalid_q && !write_pending_q;
+assign outport5_awaddr_o  =  inport_awaddr_i;
+assign outport5_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd5) && !wvalid_q && !write_pending_q;
+assign outport5_wdata_o   =  inport_wdata_i;
+assign outport5_wstrb_o   =  inport_wstrb_i;
+assign outport6_awvalid_o =  inport_awvalid_i && (write_sel_r == 3'd6) && !awvalid_q && !write_pending_q;
+assign outport6_awaddr_o  =  inport_awaddr_i;
+assign outport6_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd6) && !wvalid_q && !write_pending_q;
+assign outport6_wdata_o   =  inport_wdata_i;
+assign outport6_wstrb_o   =  inport_wstrb_i;
+assign outport7_awvalid_o =  inport_awvalid_i && (write_sel_r == 3'd7) && !awvalid_q && !write_pending_q;
+assign outport7_awaddr_o  =  inport_awaddr_i;
+assign outport7_wvalid_o  =  inport_wvalid_i && (inport_awvalid_i || awvalid_q) && (write_sel_r == 3'd7) && !wvalid_q && !write_pending_q;
+assign outport7_wdata_o   =  inport_wdata_i;
+assign outport7_wstrb_o   =  inport_wstrb_i;
 
 //-----------------------------------------------------------------
 // Write Request Accept
@@ -437,6 +536,21 @@ begin
     begin
         inport_awready_r = outport4_awready_i;
         inport_wready_r  = outport4_wready_i;
+    end
+    3'd5:
+    begin
+        inport_awready_r = outport5_awready_i;
+        inport_wready_r  = outport5_wready_i;
+    end
+    3'd6:
+    begin
+        inport_awready_r = outport6_awready_i;
+        inport_wready_r  = outport6_wready_i;
+    end
+    3'd7:
+    begin
+        inport_awready_r = outport7_awready_i;
+        inport_wready_r  = outport7_wready_i;
     end
     default :
         ;
@@ -483,6 +597,21 @@ begin
         inport_bvalid_r = outport4_bvalid_i;
         inport_bresp_r  = outport4_bresp_i;
     end
+    3'd5:
+    begin
+        inport_bvalid_r = outport5_bvalid_i;
+        inport_bresp_r  = outport5_bresp_i;
+    end
+    3'd6:
+    begin
+        inport_bvalid_r = outport6_bvalid_i;
+        inport_bresp_r  = outport6_bresp_i;
+    end
+    3'd7:
+    begin
+        inport_bvalid_r = outport7_bvalid_i;
+        inport_bresp_r  = outport7_bresp_i;
+    end
     default :
         ;
     endcase
@@ -499,6 +628,9 @@ assign outport1_bready_o = inport_bready_i && (write_sel_q == 3'd1);
 assign outport2_bready_o = inport_bready_i && (write_sel_q == 3'd2);
 assign outport3_bready_o = inport_bready_i && (write_sel_q == 3'd3);
 assign outport4_bready_o = inport_bready_i && (write_sel_q == 3'd4);
+assign outport5_bready_o = inport_bready_i && (write_sel_q == 3'd5);
+assign outport6_bready_o = inport_bready_i && (write_sel_q == 3'd6);
+assign outport7_bready_o = inport_bready_i && (write_sel_q == 3'd7);
 
 
 

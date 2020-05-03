@@ -60,6 +60,33 @@ module core_soc
     ,input           spi_miso_i
     ,input           uart_rx_i
     ,input  [ 31:0]  gpio_input_i
+    ,input           ext1_cfg_awready_i
+    ,input           ext1_cfg_wready_i
+    ,input           ext1_cfg_bvalid_i
+    ,input  [  1:0]  ext1_cfg_bresp_i
+    ,input           ext1_cfg_arready_i
+    ,input           ext1_cfg_rvalid_i
+    ,input  [ 31:0]  ext1_cfg_rdata_i
+    ,input  [  1:0]  ext1_cfg_rresp_i
+    ,input           ext1_irq_i
+    ,input           ext2_cfg_awready_i
+    ,input           ext2_cfg_wready_i
+    ,input           ext2_cfg_bvalid_i
+    ,input  [  1:0]  ext2_cfg_bresp_i
+    ,input           ext2_cfg_arready_i
+    ,input           ext2_cfg_rvalid_i
+    ,input  [ 31:0]  ext2_cfg_rdata_i
+    ,input  [  1:0]  ext2_cfg_rresp_i
+    ,input           ext2_irq_i
+    ,input           ext3_cfg_awready_i
+    ,input           ext3_cfg_wready_i
+    ,input           ext3_cfg_bvalid_i
+    ,input  [  1:0]  ext3_cfg_bresp_i
+    ,input           ext3_cfg_arready_i
+    ,input           ext3_cfg_rvalid_i
+    ,input  [ 31:0]  ext3_cfg_rdata_i
+    ,input  [  1:0]  ext3_cfg_rresp_i
+    ,input           ext3_irq_i
 
     // Outputs
     ,output          intr_o
@@ -77,6 +104,33 @@ module core_soc
     ,output          uart_tx_o
     ,output [ 31:0]  gpio_output_o
     ,output [ 31:0]  gpio_output_enable_o
+    ,output          ext1_cfg_awvalid_o
+    ,output [ 31:0]  ext1_cfg_awaddr_o
+    ,output          ext1_cfg_wvalid_o
+    ,output [ 31:0]  ext1_cfg_wdata_o
+    ,output [  3:0]  ext1_cfg_wstrb_o
+    ,output          ext1_cfg_bready_o
+    ,output          ext1_cfg_arvalid_o
+    ,output [ 31:0]  ext1_cfg_araddr_o
+    ,output          ext1_cfg_rready_o
+    ,output          ext2_cfg_awvalid_o
+    ,output [ 31:0]  ext2_cfg_awaddr_o
+    ,output          ext2_cfg_wvalid_o
+    ,output [ 31:0]  ext2_cfg_wdata_o
+    ,output [  3:0]  ext2_cfg_wstrb_o
+    ,output          ext2_cfg_bready_o
+    ,output          ext2_cfg_arvalid_o
+    ,output [ 31:0]  ext2_cfg_araddr_o
+    ,output          ext2_cfg_rready_o
+    ,output          ext3_cfg_awvalid_o
+    ,output [ 31:0]  ext3_cfg_awaddr_o
+    ,output          ext3_cfg_wvalid_o
+    ,output [ 31:0]  ext3_cfg_wdata_o
+    ,output [  3:0]  ext3_cfg_wstrb_o
+    ,output          ext3_cfg_bready_o
+    ,output          ext3_cfg_arvalid_o
+    ,output [ 31:0]  ext3_cfg_araddr_o
+    ,output          ext3_cfg_rready_o
 );
 
 wire  [ 31:0]  periph1_rdata_w;
@@ -189,6 +243,9 @@ u_intc
     ,.interrupt1_i(interrupt1_w)
     ,.interrupt2_i(interrupt2_w)
     ,.interrupt3_i(interrupt3_w)
+    ,.interrupt4_i(ext1_irq_i)
+    ,.interrupt5_i(ext2_irq_i)
+    ,.interrupt6_i(ext3_irq_i)
 
     // Outputs
     ,.cfg_awready_o(periph0_awready_w)
@@ -258,6 +315,30 @@ u_dist
     ,.outport4_rvalid_i(periph4_rvalid_w)
     ,.outport4_rdata_i(periph4_rdata_w)
     ,.outport4_rresp_i(periph4_rresp_w)
+    ,.outport5_awready_i(ext1_cfg_awready_i)
+    ,.outport5_wready_i(ext1_cfg_wready_i)
+    ,.outport5_bvalid_i(ext1_cfg_bvalid_i)
+    ,.outport5_bresp_i(ext1_cfg_bresp_i)
+    ,.outport5_arready_i(ext1_cfg_arready_i)
+    ,.outport5_rvalid_i(ext1_cfg_rvalid_i)
+    ,.outport5_rdata_i(ext1_cfg_rdata_i)
+    ,.outport5_rresp_i(ext1_cfg_rresp_i)
+    ,.outport6_awready_i(ext2_cfg_awready_i)
+    ,.outport6_wready_i(ext2_cfg_wready_i)
+    ,.outport6_bvalid_i(ext2_cfg_bvalid_i)
+    ,.outport6_bresp_i(ext2_cfg_bresp_i)
+    ,.outport6_arready_i(ext2_cfg_arready_i)
+    ,.outport6_rvalid_i(ext2_cfg_rvalid_i)
+    ,.outport6_rdata_i(ext2_cfg_rdata_i)
+    ,.outport6_rresp_i(ext2_cfg_rresp_i)
+    ,.outport7_awready_i(ext3_cfg_awready_i)
+    ,.outport7_wready_i(ext3_cfg_wready_i)
+    ,.outport7_bvalid_i(ext3_cfg_bvalid_i)
+    ,.outport7_bresp_i(ext3_cfg_bresp_i)
+    ,.outport7_arready_i(ext3_cfg_arready_i)
+    ,.outport7_rvalid_i(ext3_cfg_rvalid_i)
+    ,.outport7_rdata_i(ext3_cfg_rdata_i)
+    ,.outport7_rresp_i(ext3_cfg_rresp_i)
 
     // Outputs
     ,.inport_awready_o(inport_awready_o)
@@ -313,6 +394,33 @@ u_dist
     ,.outport4_arvalid_o(periph4_arvalid_w)
     ,.outport4_araddr_o(periph4_araddr_w)
     ,.outport4_rready_o(periph4_rready_w)
+    ,.outport5_awvalid_o(ext1_cfg_awvalid_o)
+    ,.outport5_awaddr_o(ext1_cfg_awaddr_o)
+    ,.outport5_wvalid_o(ext1_cfg_wvalid_o)
+    ,.outport5_wdata_o(ext1_cfg_wdata_o)
+    ,.outport5_wstrb_o(ext1_cfg_wstrb_o)
+    ,.outport5_bready_o(ext1_cfg_bready_o)
+    ,.outport5_arvalid_o(ext1_cfg_arvalid_o)
+    ,.outport5_araddr_o(ext1_cfg_araddr_o)
+    ,.outport5_rready_o(ext1_cfg_rready_o)
+    ,.outport6_awvalid_o(ext2_cfg_awvalid_o)
+    ,.outport6_awaddr_o(ext2_cfg_awaddr_o)
+    ,.outport6_wvalid_o(ext2_cfg_wvalid_o)
+    ,.outport6_wdata_o(ext2_cfg_wdata_o)
+    ,.outport6_wstrb_o(ext2_cfg_wstrb_o)
+    ,.outport6_bready_o(ext2_cfg_bready_o)
+    ,.outport6_arvalid_o(ext2_cfg_arvalid_o)
+    ,.outport6_araddr_o(ext2_cfg_araddr_o)
+    ,.outport6_rready_o(ext2_cfg_rready_o)
+    ,.outport7_awvalid_o(ext3_cfg_awvalid_o)
+    ,.outport7_awaddr_o(ext3_cfg_awaddr_o)
+    ,.outport7_wvalid_o(ext3_cfg_wvalid_o)
+    ,.outport7_wdata_o(ext3_cfg_wdata_o)
+    ,.outport7_wstrb_o(ext3_cfg_wstrb_o)
+    ,.outport7_bready_o(ext3_cfg_bready_o)
+    ,.outport7_arvalid_o(ext3_cfg_arvalid_o)
+    ,.outport7_araddr_o(ext3_cfg_araddr_o)
+    ,.outport7_rready_o(ext3_cfg_rready_o)
 );
 
 

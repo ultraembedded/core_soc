@@ -9,6 +9,7 @@ A basic SoC with Timer, UART, SPI, GPIO and Interrupt Controller peripherals.
 * UART peripheral.
 * SPI (master mode) peripheral with 8 chip selects.
 * 32 I/O GPIO controller.
+* 3 external peripherals (AXI4-Lite interface).
 * Interrupt controller (combines peripheral IRQs into single IRQ).
 * AXI4-Lite slave interface.
 
@@ -29,6 +30,9 @@ A basic SoC with Timer, UART, SPI, GPIO and Interrupt Controller peripherals.
 | 0x0200_0000 - 0x02ff_ffff | Peripheral - UART                                   |
 | 0x0300_0000 - 0x03ff_ffff | Peripheral - SPI                                    |
 | 0x0400_0000 - 0x04ff_ffff | Peripheral - GPIO                                   |
+| 0x0500_0000 - 0x05ff_ffff | Peripheral - External 1                             |
+| 0x0600_0000 - 0x06ff_ffff | Peripheral - External 2                             |
+| 0x0700_0000 - 0x07ff_ffff | Peripheral - External 3                             |
 
 ### Interrupt Sources
 
@@ -38,6 +42,9 @@ A basic SoC with Timer, UART, SPI, GPIO and Interrupt Controller peripherals.
 |   1    | Peripheral - UART           |
 |   2    | Peripheral - SPI            |
 |   3    | Peripheral - GPIO           |
+|   4    | Peripheral - External 1     |
+|   5    | Peripheral - External 2     |
+|   6    | Peripheral - External 3     |
 
 ### Peripheral Register Map
 
@@ -88,37 +95,37 @@ A basic SoC with Timer, UART, SPI, GPIO and Interrupt Controller peripherals.
 
 | Bits | Name | Description    |
 | ---- | ---- | -------------- |
-| 3:0 | STATUS | Pending interrupt (unmasked) bitmap. |
+| 7:0 | STATUS | Pending interrupt (unmasked) bitmap. |
 
 ##### IRQ Register: IRQ_IPR
 
 | Bits | Name | Description    |
 | ---- | ---- | -------------- |
-| 3:0 | PENDING | Pending interrupts (masked) bitmap. |
+| 7:0 | PENDING | Pending interrupts (masked) bitmap. |
 
 ##### IRQ Register: IRQ_IER
 
 | Bits | Name | Description    |
 | ---- | ---- | -------------- |
-| 3:0 | ENABLE | Interrupt enable mask. |
+| 7:0 | ENABLE | Interrupt enable mask. |
 
 ##### IRQ Register: IRQ_IAR
 
 | Bits | Name | Description    |
 | ---- | ---- | -------------- |
-| 3:0 | ACK | Bitmap of interrupts to acknowledge. |
+| 7:0 | ACK | Bitmap of interrupts to acknowledge. |
 
 ##### IRQ Register: IRQ_SIE
 
 | Bits | Name | Description    |
 | ---- | ---- | -------------- |
-| 3:0 | SET | Bitmap of interrupts to enable. |
+| 7:0 | SET | Bitmap of interrupts to enable. |
 
 ##### IRQ Register: IRQ_CIE
 
 | Bits | Name | Description    |
 | ---- | ---- | -------------- |
-| 3:0 | CLR | Bitmap of interrupts to disable. |
+| 7:0 | CLR | Bitmap of interrupts to disable. |
 
 ##### IRQ Register: IRQ_IVR
 
