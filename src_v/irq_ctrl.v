@@ -384,13 +384,69 @@ wire irq_ivr_wr_req_w = irq_ivr_wr_q;
 
 wire [6:0] irq_input_w;
 
-assign irq_input_w[0] = interrupt0_i;
-assign irq_input_w[1] = interrupt1_i;
-assign irq_input_w[2] = interrupt2_i;
-assign irq_input_w[3] = interrupt3_i;
-assign irq_input_w[4] = interrupt4_i;
-assign irq_input_w[5] = interrupt5_i;
-assign irq_input_w[6] = interrupt6_i;
+irq_ctrl_resync
+u_irq0_sync
+(
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.async_i(interrupt0_i)
+    ,.sync_o(irq_input_w[0])
+);
+
+irq_ctrl_resync
+u_irq1_sync
+(
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.async_i(interrupt1_i)
+    ,.sync_o(irq_input_w[1])
+);
+
+irq_ctrl_resync
+u_irq2_sync
+(
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.async_i(interrupt2_i)
+    ,.sync_o(irq_input_w[2])
+);
+
+irq_ctrl_resync
+u_irq3_sync
+(
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.async_i(interrupt3_i)
+    ,.sync_o(irq_input_w[3])
+);
+
+irq_ctrl_resync
+u_irq4_sync
+(
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.async_i(interrupt4_i)
+    ,.sync_o(irq_input_w[4])
+);
+
+irq_ctrl_resync
+u_irq5_sync
+(
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.async_i(interrupt5_i)
+    ,.sync_o(irq_input_w[5])
+);
+
+irq_ctrl_resync
+u_irq6_sync
+(
+     .clk_i(clk_i)
+    ,.rst_i(rst_i)
+    ,.async_i(interrupt6_i)
+    ,.sync_o(irq_input_w[6])
+);
+
 
 //-----------------------------------------------------------------
 // IRQ Enable
@@ -474,6 +530,42 @@ else
 // Assignments
 //-----------------------------------------------------------------
 assign intr_o = intr_q;
+
+endmodule
+
+module irq_ctrl_resync
+//-----------------------------------------------------------------
+// Params
+//-----------------------------------------------------------------
+#(
+    parameter RESET_VAL = 1'b0
+)
+//-----------------------------------------------------------------
+// Ports
+//-----------------------------------------------------------------
+(
+    input  clk_i,
+    input  rst_i,
+    input  async_i,
+    output sync_o
+);
+
+reg sync_ms;
+reg sync_q;
+
+always @ (posedge clk_i or posedge rst_i)
+if (rst_i)
+begin
+    sync_ms  <= RESET_VAL;
+    sync_q   <= RESET_VAL;
+end
+else
+begin
+    sync_ms  <= async_i;
+    sync_q   <= sync_ms;
+end
+
+assign sync_o = sync_q;
 
 
 
